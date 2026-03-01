@@ -58,11 +58,10 @@ export default function AddLinkModal({ onClose, onAdd }: AddLinkModalProps) {
   };
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={onClose}>
+    <div className="modal-overlay animate-fade-in">
       <div
         className="neo-card animate-bounce-in"
         style={{ width: "100%", maxWidth: 540, maxHeight: "90vh", overflowY: "auto" }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div style={{
