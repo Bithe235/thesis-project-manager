@@ -1,0 +1,310 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg: #FFFBF0;
+  --black: #1a1a1a;
+  --white: #ffffff;
+  --yellow: #FFE135;
+  --pink: #FF6B9D;
+  --blue: #4ECDC4;
+  --green: #95E16A;
+  --orange: #FF8C42;
+  --purple: #A855F7;
+  --red: #FF4757;
+  --border: 2.5px solid #1a1a1a;
+  --shadow: 4px 4px 0px #1a1a1a;
+  --shadow-lg: 6px 6px 0px #1a1a1a;
+  --shadow-sm: 2px 2px 0px #1a1a1a;
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--black);
+  font-family: 'Space Grotesk', sans-serif;
+  min-height: 100vh;
+  background-image:
+    linear-gradient(rgba(26, 26, 26, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 26, 26, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Neo-Brutalist Card */
+.neo-card {
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neo-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Neo-Brutalist Button */
+.neo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.neo-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+}
+
+.neo-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.neo-btn-yellow { background: var(--yellow); color: var(--black); }
+.neo-btn-pink { background: var(--pink); color: var(--white); }
+.neo-btn-blue { background: var(--blue); color: var(--black); }
+.neo-btn-green { background: var(--green); color: var(--black); }
+.neo-btn-orange { background: var(--orange); color: var(--white); }
+.neo-btn-black { background: var(--black); color: var(--white); }
+.neo-btn-white { background: var(--white); color: var(--black); }
+.neo-btn-red { background: var(--red); color: var(--white); }
+.neo-btn-purple { background: var(--purple); color: var(--white); }
+
+/* Neo-Brutalist Input */
+.neo-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  border: var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--black);
+  outline: none;
+  transition: box-shadow 0.12s ease;
+}
+
+.neo-input:focus {
+  box-shadow: var(--shadow);
+}
+
+.neo-input::placeholder {
+  color: #888;
+  font-weight: 400;
+}
+
+/* Badge */
+.neo-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+}
+
+/* Tag pill */
+.neo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1.5px solid var(--black);
+  border-radius: 100px;
+  background: var(--yellow);
+  color: var(--black);
+}
+
+/* Section header */
+.section-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  position: relative;
+  display: inline-block;
+}
+
+.section-title::after {
+  content: '';
+  display: block;
+  height: 6px;
+  background: var(--yellow);
+  border: 1.5px solid var(--black);
+  border-radius: 3px;
+  margin-top: 4px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--black); border-radius: 4px; }
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.85); }
+  70% { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+.animate-slide-up { animation: slideUp 0.3s ease forwards; }
+.animate-fade-in { animation: fadeIn 0.25s ease forwards; }
+.animate-bounce-in { animation: bounceIn 0.35s ease forwards; }
+
+/* Navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--white);
+  border-bottom: var(--border);
+  box-shadow: 0 4px 0 #1a1a1a;
+}
+
+/* Sticker decorations */
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: var(--border);
+  border-radius: 50%;
+  font-size: 18px;
+  box-shadow: var(--shadow-sm);
+  background: var(--white);
+  animation: wiggle 3s ease-in-out infinite;
+}
+
+/* Copy success */
+.copy-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--black);
+  color: var(--white);
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  border: var(--border);
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 9999;
+  animation: bounceIn 0.3s ease;
+}
+
+/* File manager */
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1.5px solid rgba(26,26,26,0.12);
+  transition: background 0.12s ease;
+  font-size: 14px;
+}
+
+.file-row:last-child { border-bottom: none; }
+.file-row:hover { background: rgba(255, 225, 53, 0.15); }
+
+/* Progress bar */
+.neo-progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #e5e5e5;
+  border: 1.5px solid var(--black);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.neo-progress-fill {
+  height: 100%;
+  background: var(--yellow);
+  border-radius: 100px;
+  transition: width 0.3s ease;
+}
+
+/* Sidebar nav tabs */
+.sidetab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  border: 1.5px solid transparent;
+  color: var(--black);
+  text-decoration: none;
+}
+
+.sidetab:hover {
+  background: var(--yellow);
+  border-color: var(--black);
+  box-shadow: var(--shadow-sm);
+  transform: translate(-1px, -1px);
+}
+
+.sidetab.active {
+  background: var(--black);
+  color: var(--white);
+  border-color: var(--black);
+  box-shadow: var(--shadow-sm);
+}
