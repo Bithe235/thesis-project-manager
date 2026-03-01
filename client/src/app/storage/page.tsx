@@ -75,8 +75,10 @@ export default function StoragePage() {
               }}>
                 📁 File <span style={{ color: "#4ECDC4" }}>Storage</span>
               </h1>
-              <p style={{ color: "#aaa", fontSize: 15, maxWidth: 440, lineHeight: 1.6 }}>
-                Upload, organize, and manage thesis files in the D-72 Cloudflare R2 bucket. Create folders, batch-delete, and navigate freely.
+              <p style={{ color: "#aaa", fontSize: 15, maxWidth: 520, lineHeight: 1.6 }}>
+                Secure storage for{" "}
+                <strong>Dhaka International University — CSE, Batch D-72</strong>{" "}
+                thesis chapters, datasets, and important documents. Organize folders, add rich metadata, and keep the whole batch in one place.
                 {visitorName && (
                   <span style={{ color: "#4ECDC4", fontWeight: 600 }}> Welcome, {visitorName}!</span>
                 )}

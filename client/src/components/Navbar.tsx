@@ -61,6 +61,9 @@ export default function Navbar() {
               🎓
             </div>
             <div>
+              <div style={{ fontSize: 11, color: "#888", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Dhaka International University
+              </div>
               <div style={{
                 fontFamily: "'Space Mono', monospace",
                 fontWeight: 700,
@@ -71,7 +74,7 @@ export default function Navbar() {
               }}>
                 D-72 Thesis Group
               </div>
-              <div style={{ fontSize: 11, color: "#666", fontWeight: 500 }}>Research Hub ✦</div>
+              <div style={{ fontSize: 11, color: "#666", fontWeight: 500 }}>Dept. of CSE • Research Hub ✦</div>
             </div>
           </Link>
 
@@ -104,7 +107,7 @@ export default function Navbar() {
                 color: "#fff",
               }}>
                 <Sparkles size={13} />
-                Batch-7 | Dept. CSE
+                Batch D-72 • CSE
               </div>
               <button
                 onClick={() => setShowAdminModal(true)}

@@ -420,7 +420,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
         /* NORMAL FILE LIST MODE */
         <div className="neo-card" style={{ overflow: "hidden" }}>
           {/* Header */}
-          <div style={{ display: "grid", gridTemplateColumns: "32px 1fr auto 110px 80px", padding: "10px 14px", background: "#1a1a1a", color: "#fff", fontSize: 12, fontWeight: 700, gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "32px minmax(0,1fr) 120px 90px 220px", padding: "10px 14px", background: "#1a1a1a", color: "#fff", fontSize: 12, fontWeight: 700, gap: 8 }}>
             <span /><span>Name</span><span>Type</span><span>Size</span><span>Actions</span>
           </div>
 
@@ -436,7 +436,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
 
           {/* Back button */}
           {!loading && prefix && (
-            <div className="file-row" style={{ cursor: "pointer", display: "grid", gridTemplateColumns: "32px 1fr auto 110px 80px", gap: 8 }}
+            <div className="file-row" style={{ cursor: "pointer", display: "grid", gridTemplateColumns: "32px minmax(0,1fr) 120px 90px 220px", gap: 8 }}
               onClick={() => { const parts = prefix.replace(/\/$/, "").split("/"); parts.pop(); setPrefix(parts.length ? parts.join("/") + "/" : ""); }}>
               <span /><span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 13 }}>
                 <Folder size={16} color="#FFB800" style={{ fill: "#FFE135", stroke: "#1a1a1a", strokeWidth: 1.5 }} />.. (go back)
@@ -446,7 +446,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
 
           {/* Folders */}
           {!loading && folders.map((obj) => (
-            <div key={obj.key} className="file-row" style={{ display: "grid", gridTemplateColumns: "32px 1fr auto 110px 80px", gap: 8, cursor: "pointer", background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined }}>
+            <div key={obj.key} className="file-row" style={{ display: "grid", gridTemplateColumns: "32px minmax(0,1fr) 120px 90px 220px", gap: 8, cursor: "pointer", background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined }}>
               <span onClick={() => toggleSelect(obj.key)} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
                 {selected.has(obj.key) ? <CheckSquare size={16} /> : <Square size={16} color="#aaa" />}
               </span>
@@ -474,7 +474,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
           {!loading && files.map((obj) => {
             const meta = metaMap[obj.key];
             return (
-              <div key={obj.key} className="file-row" style={{ display: "grid", gridTemplateColumns: "32px 1fr auto 110px 80px", gap: 8, background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined }}>
+              <div key={obj.key} className="file-row" style={{ display: "grid", gridTemplateColumns: "32px minmax(0,1fr) 120px 90px 220px", gap: 8, background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined }}>
                 <span onClick={() => toggleSelect(obj.key)} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
                   {selected.has(obj.key) ? <CheckSquare size={16} /> : <Square size={16} color="#aaa" />}
                 </span>

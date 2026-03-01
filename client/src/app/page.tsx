@@ -174,8 +174,10 @@ export default function HomePage() {
               }}>
                 🔗 Research <span style={{ color: "#FFE135" }}>Link Hub</span>
               </h1>
-              <p style={{ color: "#aaa", fontSize: 16, maxWidth: 480, lineHeight: 1.6 }}>
-                Centralized repository of research links, tools, and resources for the D-72 Thesis Group. Add, search, and share links with the team.
+              <p style={{ color: "#aaa", fontSize: 16, maxWidth: 520, lineHeight: 1.6 }}>
+                Central hub for thesis resources, research links, and tools for{" "}
+                <strong>Dhaka International University</strong> —{" "}
+                <strong>Dept. of CSE, Batch D-72</strong>. Add, search, and share materials so every student stays in sync.
               </p>
             </div>
 
