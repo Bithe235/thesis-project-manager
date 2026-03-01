@@ -19,7 +19,7 @@
 const { WebSocketServer } = require("ws");
 const http = require("http");
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 7000;
 
 // ── State ──────────────────────────────────────────────────────────────────
 // sessionId → { ws, name, page, sessionId, joinedAt }
