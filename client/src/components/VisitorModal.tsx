@@ -124,7 +124,7 @@ export default function VisitorModal({ onNameSet }: VisitorModalProps) {
                 }}
                 value={name}
                 onChange={(e) => { setName(e.target.value); setError(false); }}
-                placeholder="e.g. Fahad Ahmed"
+                placeholder="e.g. fahadakash"
                 maxLength={32}
               />
             </div>
