@@ -1,10 +1,10 @@
-\"use client\";
-import { useState, useEffect, useRef } from \"react\";
+"use client";
+import { useState, useEffect, useRef } from "react";
 import {
   Folder, Upload, Trash2, FolderPlus, ChevronRight,
   Home, RefreshCw, X, CheckSquare, Square, AlertTriangle,
   Search, Info, ExternalLink, Download as DownloadIcon,
-} from \"lucide-react\";
+} from "lucide-react";
 import { formatFileSize, getFileIcon } from "@/lib/r2-client";
 import UploadMetadataModal, { UploadMetadata } from "./UploadMetadataModal";
 
