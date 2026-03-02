@@ -41,6 +41,7 @@ export default function HomePage() {
   const [toast, setToast] = useState("");
   const [visitorName, setVisitorName] = useState<string | null>(null);
   const [showVisitorModal, setShowVisitorModal] = useState(false);
+  const [editingLink, setEditingLink] = useState<Link | null>(null);
 
   useEffect(() => {
     fetchLinks();
@@ -98,6 +99,18 @@ export default function HomePage() {
     await fetch(`/api/links?id=${id}`, { method: "DELETE" });
     setLinks((prev) => prev.filter((l) => l.id !== id));
     showToast("🗑️ Link deleted");
+  };
+
+  const handleUpdateLink = async (id: string, updated: Omit<Link, "id" | "createdAt">) => {
+    const res = await fetch("/api/links", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...updated }),
+    });
+    if (!res.ok) throw new Error("Failed");
+    const data = await res.json();
+    setLinks((prev) => prev.map((l) => (l.id === id ? data.link : l)));
+    showToast("✅ Link updated");
   };
 
   const showToast = (msg: string) => {
@@ -377,6 +390,7 @@ export default function HomePage() {
                 key={link.id}
                 link={link}
                 onDelete={handleDeleteLink}
+                onEdit={isAdmin ? (l) => { setEditingLink(l); setShowModal(true); } : undefined}
                 isAdmin={isAdmin}
               />
             ))}
@@ -387,8 +401,20 @@ export default function HomePage() {
       {/* Add Link Modal */}
       {showModal && (
         <AddLinkModal
-          onClose={() => setShowModal(false)}
-          onAdd={handleAddLink}
+          mode={editingLink ? "edit" : "add"}
+          initialValues={editingLink ? {
+            title: editingLink.title,
+            url: editingLink.url,
+            purpose: editingLink.purpose,
+            category: editingLink.category,
+            tags: editingLink.tags,
+            color: editingLink.color,
+            author: editingLink.author || "",
+          } : undefined}
+          onClose={() => { setShowModal(false); setEditingLink(null); }}
+          onAdd={(payload) => editingLink
+            ? handleUpdateLink(editingLink.id, payload)
+            : handleAddLink(payload)}
         />
       )}
 

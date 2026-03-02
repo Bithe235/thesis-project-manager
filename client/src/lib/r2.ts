@@ -91,10 +91,12 @@ export async function getPresignedUploadUrl(key: string, contentType: string): P
     return getSignedUrl(r2Client, command, { expiresIn: 3600 });
 }
 
-export async function getPresignedDownloadUrl(key: string): Promise<string> {
+export async function getPresignedDownloadUrl(key: string, contentDisposition?: string): Promise<string> {
     const command = new GetObjectCommand({
         Bucket: R2_BUCKET,
         Key: key,
+        // Optional: influence how the browser treats the response (view vs download)
+        ResponseContentDisposition: contentDisposition,
     });
     return getSignedUrl(r2Client, command, { expiresIn: 3600 });
 }

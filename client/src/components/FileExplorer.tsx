@@ -57,6 +57,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
   const [deletingBulk, setDeletingBulk] = useState(false);
   const [hoveredMeta, setHoveredMeta] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => {
     const updateAdmin = () => {
@@ -68,6 +69,16 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
     return () => {
       window.removeEventListener("d72_admin_change", updateAdmin as EventListener);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      setIsNarrow(window.innerWidth < 700);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const fetchObjects = async (p = prefix) => {
@@ -244,6 +255,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
   const folders = objects.filter((o) => o.isFolder);
   const files = objects.filter((o) => !o.isFolder);
   const isSearchMode = !!search.trim();
+  const gridTemplate = isNarrow ? "32px minmax(0,1fr)" : "32px minmax(0,1fr) 120px 90px 220px";
 
   const TYPE_COLORS: Record<string, string> = {
     "Research Paper": "#FF6B9D", "Dataset": "#4ECDC4", "Thesis Chapter": "#A855F7",
@@ -261,8 +273,8 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
     return ext === "pdf" || ext === "doc" || ext === "docx";
   };
 
-  const openPresignedUrl = async (key: string): Promise<string> => {
-    const res = await fetch(`/api/r2/download-url?key=${encodeURIComponent(key)}`);
+  const openPresignedUrl = async (key: string, mode: "view" | "download"): Promise<string> => {
+    const res = await fetch(`/api/r2/download-url?key=${encodeURIComponent(key)}&mode=${mode}`);
     const data = await res.json();
     if (!res.ok || data.error || !data.url) {
       throw new Error(data.error || "Failed to generate file URL");
@@ -272,7 +284,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
 
   const handleView = async (obj: R2Object) => {
     try {
-      const url = await openPresignedUrl(obj.key);
+      const url = await openPresignedUrl(obj.key, "view");
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (err: any) {
       setError(err.message || "Failed to open file");
@@ -281,7 +293,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
 
   const handleDownload = async (obj: R2Object) => {
     try {
-      const url = await openPresignedUrl(obj.key);
+      const url = await openPresignedUrl(obj.key, "download");
       const a = document.createElement("a");
       a.href = url;
       a.download = obj.name;
@@ -420,7 +432,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
         /* NORMAL FILE LIST MODE */
         <div className="neo-card" style={{ overflow: "hidden" }}>
           {/* Header */}
-          <div style={{ display: "grid", gridTemplateColumns: "32px minmax(0,1fr) 120px 90px 220px", padding: "10px 14px", background: "#1a1a1a", color: "#fff", fontSize: 12, fontWeight: 700, gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "10px 14px", background: "#1a1a1a", color: "#fff", fontSize: 12, fontWeight: 700, gap: 8 }}>
             <span /><span>Name</span><span>Type</span><span>Size</span><span>Actions</span>
           </div>
 
@@ -436,7 +448,7 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
 
           {/* Back button */}
           {!loading && prefix && (
-            <div className="file-row" style={{ cursor: "pointer", display: "grid", gridTemplateColumns: "32px minmax(0,1fr) 120px 90px 220px", gap: 8 }}
+            <div className="file-row" style={{ cursor: "pointer", display: "grid", gridTemplateColumns: gridTemplate, gap: 8 }}
               onClick={() => { const parts = prefix.replace(/\/$/, "").split("/"); parts.pop(); setPrefix(parts.length ? parts.join("/") + "/" : ""); }}>
               <span /><span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 13 }}>
                 <Folder size={16} color="#FFB800" style={{ fill: "#FFE135", stroke: "#1a1a1a", strokeWidth: 1.5 }} />.. (go back)
@@ -445,36 +457,198 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
           )}
 
           {/* Folders */}
-          {!loading && folders.map((obj) => (
-            <div key={obj.key} className="file-row" style={{ display: "grid", gridTemplateColumns: "32px minmax(0,1fr) 120px 90px 220px", gap: 8, cursor: "pointer", background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined }}>
-              <span onClick={() => toggleSelect(obj.key)} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
-                {selected.has(obj.key) ? <CheckSquare size={16} /> : <Square size={16} color="#aaa" />}
-              </span>
-              <span onClick={() => handleFolderClick(obj)} style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 13 }}>
-                <Folder size={16} color="#FFB800" style={{ fill: "#FFE135", stroke: "#1a1a1a", strokeWidth: 1.5 }} />
-                {obj.name}/
-              </span>
-              <span />
-              <span style={{ color: "#999", fontSize: 12 }}>—</span>
-              <span>
-                {isAdmin && (
-                  <button
-                    onClick={() => setDeleteConfirm(obj.key)}
-                    className="neo-btn neo-btn-red"
-                    style={{ padding: "3px 8px", fontSize: 11 }}
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                )}
-              </span>
-            </div>
-          ))}
+          {!loading && folders.map((obj) => {
+            if (isNarrow) {
+              return (
+                <div
+                  key={obj.key}
+                  className="file-row"
+                  style={{
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined,
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+                    <span onClick={() => toggleSelect(obj.key)} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
+                      {selected.has(obj.key) ? <CheckSquare size={16} /> : <Square size={16} color="#aaa" />}
+                    </span>
+                    <button
+                      onClick={() => handleFolderClick(obj)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontWeight: 600,
+                        fontSize: 13,
+                        border: "none",
+                        background: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Folder size={16} color="#FFB800" style={{ fill: "#FFE135", stroke: "#1a1a1a", strokeWidth: 1.5 }} />
+                      {obj.name}/
+                    </button>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                    <span style={{ color: "#999", fontSize: 12 }}>—</span>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setDeleteConfirm(obj.key)}
+                        className="neo-btn neo-btn-red"
+                        style={{ padding: "3px 8px", fontSize: 11 }}
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div key={obj.key} className="file-row" style={{ display: "grid", gridTemplateColumns: gridTemplate, gap: 8, cursor: "pointer", background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined }}>
+                <span onClick={() => toggleSelect(obj.key)} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
+                  {selected.has(obj.key) ? <CheckSquare size={16} /> : <Square size={16} color="#aaa" />}
+                </span>
+                <span onClick={() => handleFolderClick(obj)} style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 13 }}>
+                  <Folder size={16} color="#FFB800" style={{ fill: "#FFE135", stroke: "#1a1a1a", strokeWidth: 1.5 }} />
+                  {obj.name}/
+                </span>
+                <span />
+                <span style={{ color: "#999", fontSize: 12 }}>—</span>
+                <span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setDeleteConfirm(obj.key)}
+                      className="neo-btn neo-btn-red"
+                      style={{ padding: "3px 8px", fontSize: 11 }}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </span>
+              </div>
+            );
+          })}
 
           {/* Files */}
           {!loading && files.map((obj) => {
             const meta = metaMap[obj.key];
+
+            // Mobile-friendly stacked layout
+            if (isNarrow) {
+              return (
+                <div
+                  key={obj.key}
+                  className="file-row"
+                  style={{
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined,
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+                    <span onClick={() => toggleSelect(obj.key)} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
+                      {selected.has(obj.key) ? <CheckSquare size={16} /> : <Square size={16} color="#aaa" />}
+                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2, overflow: "hidden", position: "relative", flex: 1 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, overflow: "hidden" }}>
+                        <span style={{ flexShrink: 0, fontSize: 16 }}>{getFileIcon(obj.name)}</span>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>{obj.name}</span>
+                        {meta && (
+                          <span
+                            onMouseEnter={() => setHoveredMeta(obj.key)}
+                            onMouseLeave={() => setHoveredMeta(null)}
+                            style={{ cursor: "help", flexShrink: 0, color: "#4ECDC4" }}
+                          >
+                            <Info size={13} />
+                          </span>
+                        )}
+                      </span>
+                      {meta?.description && (
+                        <span style={{ fontSize: 11, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {meta.description}
+                        </span>
+                      )}
+                      {meta?.tags && meta.tags.length > 0 && (
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {meta.tags.slice(0, 3).map((t) => (
+                            <span key={t} style={{ fontSize: 10, background: "#FFE135", border: "1px solid #1a1a1a", borderRadius: 100, padding: "0 6px", fontWeight: 600 }}>{t}</span>
+                          ))}
+                        </div>
+                      )}
+                      {hoveredMeta === obj.key && meta && (
+                        <div style={{
+                          position: "absolute", top: "100%", left: 0, zIndex: 100,
+                          background: "#1a1a1a", color: "#fff",
+                          border: "2px solid #1a1a1a", borderRadius: 8,
+                          padding: "10px 14px", fontSize: 12, minWidth: 240,
+                          boxShadow: "4px 4px 0 #FFE135",
+                        }}>
+                          <div style={{ fontWeight: 700, marginBottom: 4 }}>📂 {meta.type}</div>
+                          {meta.description && <div style={{ color: "#ccc", marginBottom: 6 }}>{meta.description}</div>}
+                          <div style={{ color: "#aaa", fontSize: 11 }}>👤 by {meta.uploadedBy} • {new Date(meta.uploadedAt).toLocaleDateString()}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    width: "100%",
+                    flexWrap: "wrap",
+                  }}>
+                    <span>
+                      {meta && (
+                        <span style={{ fontSize: 10, background: TYPE_COLORS[meta.type] || "#f0f0f0", border: "1.5px solid #1a1a1a", borderRadius: 4, padding: "2px 7px", fontWeight: 700, whiteSpace: "nowrap" }}>
+                          {meta.type}
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: 12, color: "#555" }}>{formatFileSize(obj.size)}</span>
+                    <span style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
+                      {canPreviewInline(obj.name) && (
+                        <button
+                          onClick={() => handleView(obj)}
+                          className="neo-btn neo-btn-white"
+                          style={{ padding: "3px 8px", fontSize: 11 }}
+                        >
+                          <ExternalLink size={11} /> View
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDownload(obj)}
+                        className="neo-btn neo-btn-white"
+                        style={{ padding: "3px 8px", fontSize: 11 }}
+                      >
+                        <DownloadIcon size={11} /> Download
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => setDeleteConfirm(obj.key)}
+                          className="neo-btn neo-btn-red"
+                          style={{ padding: "3px 8px", fontSize: 11 }}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+
+            // Desktop / wide layout (grid)
             return (
-              <div key={obj.key} className="file-row" style={{ display: "grid", gridTemplateColumns: "32px minmax(0,1fr) 120px 90px 220px", gap: 8, background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined }}>
+              <div key={obj.key} className="file-row" style={{ display: "grid", gridTemplateColumns: gridTemplate, gap: 8, background: selected.has(obj.key) ? "rgba(255,225,53,0.2)" : undefined }}>
                 <span onClick={() => toggleSelect(obj.key)} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
                   {selected.has(obj.key) ? <CheckSquare size={16} /> : <Square size={16} color="#aaa" />}
                 </span>
@@ -497,7 +671,6 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
                       {meta.description}
                     </span>
                   )}
-                  {/* Tags */}
                   {meta?.tags && meta.tags.length > 0 && (
                     <div style={{ display: "flex", gap: 4, paddingLeft: 22, flexWrap: "wrap" }}>
                       {meta.tags.slice(0, 3).map((t) => (
@@ -505,7 +678,6 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
                       ))}
                     </div>
                   )}
-                  {/* Hover tooltip */}
                   {hoveredMeta === obj.key && meta && (
                     <div style={{
                       position: "absolute", top: "100%", left: 0, zIndex: 100,

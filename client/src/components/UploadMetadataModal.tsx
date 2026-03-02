@@ -7,6 +7,15 @@ const FILE_TYPES = [
   "Code / Script", "Notes", "Report", "Image / Figure", "Other",
 ];
 
+const SUGGESTED_TAGS = [
+  "thesis",
+  "chapter-1",
+  "dataset",
+  "figures",
+  "code",
+  "final",
+];
+
 const TYPE_EMOJIS: Record<string, string> = {
   "Research Paper": "📄",
   "Dataset": "📊",
@@ -44,6 +53,16 @@ export default function UploadMetadataModal({
   const [description, setDescription] = useState("");
   const [tagsInput, setTagsInput] = useState("");
   const [uploadedBy, setUploadedBy] = useState(cleanName);
+
+  const addTag = (tag: string) => {
+    const existing = tagsInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (existing.includes(tag)) return;
+    const next = [...existing, tag];
+    setTagsInput(next.join(", "));
+  };
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +185,23 @@ export default function UploadMetadataModal({
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="e.g. CNN, PyTorch, experiment-1"
             />
+            <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {SUGGESTED_TAGS.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => addTag(t)}
+                  className="neo-btn neo-btn-white"
+                  style={{
+                    padding: "4px 10px",
+                    fontSize: 11,
+                    borderRadius: 999,
+                  }}
+                >
+                  #{t}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Uploaded by */}

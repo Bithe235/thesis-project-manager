@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Plus, Link as LinkIcon, Tag, Palette, User } from "lucide-react";
 
 const LINK_COLORS = [
@@ -10,6 +10,16 @@ const LINK_COLORS = [
 const LINK_CATEGORIES = [
   "Research", "Reference", "Tool", "Documentation",
   "Dataset", "Resource", "Communication", "Other",
+];
+
+const SUGGESTED_TAGS = [
+  "thesis",
+  "proposal",
+  "dataset",
+  "paper",
+  "presentation",
+  "code",
+  "survey",
 ];
 
 interface AddLinkModalProps {
@@ -23,18 +33,59 @@ interface AddLinkModalProps {
     color: string;
     author: string;
   }) => void;
+  initialValues?: {
+    title: string;
+    url: string;
+    purpose: string;
+    category: string;
+    tags: string[];
+    color: string;
+    author: string;
+  };
+  mode?: "add" | "edit";
 }
 
-export default function AddLinkModal({ onClose, onAdd }: AddLinkModalProps) {
-  const [title, setTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [category, setCategory] = useState("Other");
-  const [tagsInput, setTagsInput] = useState("");
-  const [color, setColor] = useState(LINK_COLORS[0]);
-  const [author, setAuthor] = useState("");
+export default function AddLinkModal({ onClose, onAdd, initialValues, mode = "add" }: AddLinkModalProps) {
+  const isEdit = mode === "edit";
+
+  const [title, setTitle] = useState(initialValues?.title ?? "");
+  const [url, setUrl] = useState(initialValues?.url ?? "");
+  const [purpose, setPurpose] = useState(initialValues?.purpose ?? "");
+  const [category, setCategory] = useState(initialValues?.category ?? "Other");
+  const [tagsInput, setTagsInput] = useState(initialValues?.tags?.join(", ") ?? "");
+  const [color, setColor] = useState(initialValues?.color ?? LINK_COLORS[0]);
+  const [author, setAuthor] = useState(initialValues?.author ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Pre-fill "Added By" from visitor name (stored by VisitorModal)
+  useEffect(() => {
+    if (initialValues) return; // don't override existing author when editing
+    if (author) return;
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem("d72_visitor_name") || "";
+    if (!stored) return;
+    try {
+      // Strip leading emoji + spaces (matches VisitorModal style like "🎓 Name")
+      const clean = stored.replace(/^[\p{Emoji}\s]+/u, "").trim();
+      setAuthor((prev) => prev || clean);
+    } catch {
+      // Fallback without emoji stripping if regex unsupported
+      const parts = stored.split(" ");
+      const fallback = parts.length > 1 ? parts.slice(1).join(" ") : stored;
+      setAuthor((prev) => prev || fallback.trim());
+    }
+  }, [author, initialValues]);
+
+  const addTag = (tag: string) => {
+    const existing = tagsInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (existing.includes(tag)) return;
+    const next = [...existing, tag];
+    setTagsInput(next.join(", "));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +102,7 @@ export default function AddLinkModal({ onClose, onAdd }: AddLinkModalProps) {
       await onAdd({ title, url, purpose, category, tags, color, author });
       onClose();
     } catch {
-      setError("Failed to add link. Please try again.");
+      setError(isEdit ? "Failed to update link. Please try again." : "Failed to add link. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -73,7 +124,7 @@ export default function AddLinkModal({ onClose, onAdd }: AddLinkModalProps) {
           background: color,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 17, fontFamily: "'Space Mono', monospace" }}>
-            <LinkIcon size={18} /> Add New Link
+            <LinkIcon size={18} /> {isEdit ? "Edit Link" : "Add New Link"}
           </div>
           <button
             onClick={onClose}
@@ -184,6 +235,23 @@ export default function AddLinkModal({ onClose, onAdd }: AddLinkModalProps) {
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="e.g. ML, Python, deep-learning"
             />
+            <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {SUGGESTED_TAGS.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => addTag(t)}
+                  className="neo-btn neo-btn-white"
+                  style={{
+                    padding: "4px 10px",
+                    fontSize: 11,
+                    borderRadius: 999,
+                  }}
+                >
+                  #{t}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -227,9 +295,13 @@ export default function AddLinkModal({ onClose, onAdd }: AddLinkModalProps) {
               className="neo-btn neo-btn-black"
               style={{ flex: 2, justifyContent: "center" }}
             >
-              {loading ? "Adding..." : (
-                <><Plus size={16} /> Add Link</>
-              )}
+              {loading
+                ? (isEdit ? "Saving..." : "Adding...")
+                : (
+                  <>
+                    <Plus size={16} /> {isEdit ? "Save Changes" : "Add Link"}
+                  </>
+                )}
             </button>
           </div>
         </form>

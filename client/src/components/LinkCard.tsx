@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Copy, ExternalLink, Trash2, CheckCheck, Tag, Clock } from "lucide-react";
+import { Copy, ExternalLink, Trash2, CheckCheck, Tag, Clock, Pencil } from "lucide-react";
 
 interface Link {
   id: string;
@@ -17,6 +17,7 @@ interface Link {
 interface LinkCardProps {
   link: Link;
   onDelete?: (id: string) => void;
+  onEdit?: (link: Link) => void;
   isAdmin?: boolean;
 }
 
@@ -25,7 +26,7 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   Dataset: "📊", Resource: "📦", Communication: "💬", Other: "🔗",
 };
 
-export default function LinkCard({ link, onDelete, isAdmin = false }: LinkCardProps) {
+export default function LinkCard({ link, onDelete, onEdit, isAdmin = false }: LinkCardProps) {
   const [copied, setCopied] = useState(false);
   const [copyAll, setCopyAll] = useState(false);
 
@@ -79,23 +80,45 @@ export default function LinkCard({ link, onDelete, isAdmin = false }: LinkCardPr
             {link.category}
           </span>
         </div>
-        {isAdmin && onDelete && (
-          <button
-            onClick={() => onDelete(link.id)}
-            style={{
-              border: "1.5px solid #1a1a1a",
-              borderRadius: 6,
-              padding: "3px 6px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              boxShadow: "1px 1px 0 #1a1a1a",
-              background: "rgba(255,255,255,0.7)",
-            }}
-            title="Delete link"
-          >
-            <Trash2 size={13} color="#1a1a1a" />
-          </button>
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 6 }}>
+            {onEdit && (
+              <button
+                onClick={() => onEdit(link)}
+                style={{
+                  border: "1.5px solid #1a1a1a",
+                  borderRadius: 6,
+                  padding: "3px 6px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  boxShadow: "1px 1px 0 #1a1a1a",
+                  background: "rgba(255,255,255,0.7)",
+                }}
+                title="Edit link"
+              >
+                <Pencil size={13} color="#1a1a1a" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(link.id)}
+                style={{
+                  border: "1.5px solid #1a1a1a",
+                  borderRadius: 6,
+                  padding: "3px 6px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  boxShadow: "1px 1px 0 #1a1a1a",
+                  background: "rgba(255,255,255,0.7)",
+                }}
+                title="Delete link"
+              >
+                <Trash2 size={13} color="#1a1a1a" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
