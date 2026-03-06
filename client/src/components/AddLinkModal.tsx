@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { X, Plus, Link as LinkIcon, Tag, Palette, User } from "lucide-react";
+import { X, Plus, Link as LinkIcon, Tag, Palette, User, Folder, Cloud, ChevronRight } from "lucide-react";
 
 const LINK_COLORS = [
   "#FFE135", "#FF6B9D", "#4ECDC4", "#95E16A",
@@ -58,6 +58,42 @@ export default function AddLinkModal({ onClose, onAdd, initialValues, mode = "ad
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  type TargetKind = "web" | "storageFile" | "storageFolder";
+
+  const getInitialTargetKind = (): TargetKind => {
+    const u = (initialValues?.url ?? "").trim();
+    if (u.startsWith("r2://")) return "storageFile";
+    if (u.startsWith("r2folder://")) return "storageFolder";
+    return "web";
+  };
+
+  const [targetKind, setTargetKind] = useState<TargetKind>(getInitialTargetKind());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [storagePrefix, setStoragePrefix] = useState<string>(() => {
+    const u = (initialValues?.url ?? "").trim();
+    if (u.startsWith("r2folder://")) return u.slice("r2folder://".length);
+    if (u.startsWith("r2://")) {
+      const key = u.slice("r2://".length);
+      const parts = key.split("/");
+      parts.pop();
+      const p = parts.length ? `${parts.join("/")}/` : "";
+      return p;
+    }
+    return "";
+  });
+  const [storageObjects, setStorageObjects] = useState<Array<{ key: string; name: string; isFolder: boolean; size: number }>>([]);
+  const [storageLoading, setStorageLoading] = useState(false);
+
+  const selectedStorageLabel = (() => {
+    const u = url.trim();
+    if (u.startsWith("r2://")) return u.slice("r2://".length);
+    if (u.startsWith("r2folder://")) {
+      const p = u.slice("r2folder://".length);
+      return p ? `${p}` : "(root)";
+    }
+    return "";
+  })();
+
   // Pre-fill "Added By" from visitor name (stored by VisitorModal)
   useEffect(() => {
     if (initialValues) return; // don't override existing author when editing
@@ -89,9 +125,26 @@ export default function AddLinkModal({ onClose, onAdd, initialValues, mode = "ad
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !url.trim() || !purpose.trim()) {
-      setError("Title, URL, and purpose are required.");
+    if (!title.trim() || !purpose.trim()) {
+      setError("Title and purpose are required.");
       return;
+    }
+    const u = url.trim();
+    if (targetKind === "web") {
+      if (!/^https?:\/\//i.test(u)) {
+        setError("Please enter a valid http(s) URL.");
+        return;
+      }
+    } else if (targetKind === "storageFile") {
+      if (!u.startsWith("r2://")) {
+        setError("Please choose a storage file.");
+        return;
+      }
+    } else if (targetKind === "storageFolder") {
+      if (!u.startsWith("r2folder://")) {
+        setError("Please choose a storage folder.");
+        return;
+      }
     }
     const tags = tagsInput
       .split(",")
@@ -167,16 +220,231 @@ export default function AddLinkModal({ onClose, onAdd, initialValues, mode = "ad
 
           <div>
             <label style={{ display: "block", fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
-              🌐 URL *
+              🔗 Target *
             </label>
-            <input
-              className="neo-input"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://..."
-              type="url"
-              required
-            />
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+              {[
+                { id: "web" as const, label: "Web URL", icon: "🌐" },
+                { id: "storageFile" as const, label: "Storage File", icon: "📄" },
+                { id: "storageFolder" as const, label: "Storage Folder", icon: "📁" },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    setTargetKind(t.id);
+                    setError("");
+                    setPickerOpen(false);
+                    if (t.id === "web" && (url.startsWith("r2://") || url.startsWith("r2folder://"))) {
+                      setUrl("");
+                    }
+                  }}
+                  style={{
+                    padding: "6px 12px",
+                    border: "2px solid #1a1a1a",
+                    borderRadius: 10,
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    background: targetKind === t.id ? "#1a1a1a" : "#fff",
+                    color: targetKind === t.id ? "#fff" : "#1a1a1a",
+                    boxShadow: targetKind === t.id ? "2px 2px 0 #FFE135" : "1px 1px 0 #1a1a1a",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    transition: "all 0.1s",
+                  }}
+                >
+                  <span>{t.icon}</span> {t.label}
+                </button>
+              ))}
+            </div>
+
+            {targetKind === "web" ? (
+              <>
+                <label style={{ display: "block", fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
+                  🌐 URL *
+                </label>
+                <input
+                  className="neo-input"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://..."
+                  type="url"
+                  required
+                />
+              </>
+            ) : (
+              <>
+                <label style={{ display: "block", fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
+                  <Cloud size={12} style={{ display: "inline", marginRight: 4 }} />
+                  {targetKind === "storageFile" ? "Storage File" : "Storage Folder"} *
+                </label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    className="neo-input"
+                    value={selectedStorageLabel}
+                    readOnly
+                    placeholder={targetKind === "storageFile" ? "Choose a file from storage..." : "Choose a folder from storage..."}
+                  />
+                  <button
+                    type="button"
+                    className="neo-btn neo-btn-white"
+                    onClick={async () => {
+                      setPickerOpen((p) => !p);
+                      setError("");
+                      if (!pickerOpen) {
+                        setStorageLoading(true);
+                        try {
+                          const res = await fetch(`/api/r2/list?prefix=${encodeURIComponent(storagePrefix)}`);
+                          const data = await res.json();
+                          setStorageObjects(data.objects || []);
+                        } finally {
+                          setStorageLoading(false);
+                        }
+                      }
+                    }}
+                    style={{ padding: "10px 12px" }}
+                  >
+                    Choose
+                  </button>
+                </div>
+
+                {pickerOpen && (
+                  <div style={{
+                    marginTop: 10,
+                    background: "#fff",
+                    border: "2px solid #1a1a1a",
+                    borderRadius: 10,
+                    boxShadow: "3px 3px 0 #1a1a1a",
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      padding: "10px 12px",
+                      borderBottom: "2px solid #1a1a1a",
+                      background: "#f5f5f5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Folder size={14} /> thesis{storagePrefix ? ` / ${storagePrefix.replace(/\/$/, "")}` : ""}
+                      </div>
+                      {targetKind === "storageFolder" && (
+                        <button
+                          type="button"
+                          className="neo-btn neo-btn-yellow"
+                          style={{ padding: "6px 10px", fontSize: 12 }}
+                          onClick={() => {
+                            const p = storagePrefix || "";
+                            const normalized = p && !p.endsWith("/") ? `${p}/` : p;
+                            setUrl(`r2folder://${normalized}`);
+                            setPickerOpen(false);
+                          }}
+                        >
+                          Select this folder
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ padding: 10, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="neo-btn neo-btn-white"
+                        style={{ padding: "6px 10px", fontSize: 12 }}
+                        onClick={async () => {
+                          const parts = storagePrefix.replace(/\/$/, "").split("/").filter(Boolean);
+                          parts.pop();
+                          const nextPrefix = parts.length ? `${parts.join("/")}/` : "";
+                          setStoragePrefix(nextPrefix);
+                          setStorageLoading(true);
+                          try {
+                            const res = await fetch(`/api/r2/list?prefix=${encodeURIComponent(nextPrefix)}`);
+                            const data = await res.json();
+                            setStorageObjects(data.objects || []);
+                          } finally {
+                            setStorageLoading(false);
+                          }
+                        }}
+                        disabled={!storagePrefix}
+                      >
+                        <ChevronRight size={12} style={{ transform: "rotate(180deg)" }} /> Up
+                      </button>
+                      <div style={{ fontSize: 11, color: "#666" }}>
+                        Tip: click folders to navigate.
+                      </div>
+                    </div>
+
+                    {storageLoading ? (
+                      <div style={{ padding: 14, fontSize: 13, color: "#666" }}>Loading...</div>
+                    ) : (
+                      <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                        {storageObjects.map((o) => (
+                          <div
+                            key={o.key}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              padding: "10px 12px",
+                              borderTop: "1px solid rgba(26,26,26,0.12)",
+                              cursor: "pointer",
+                            }}
+                            onClick={async () => {
+                              if (o.isFolder) {
+                                if (targetKind === "storageFolder") {
+                                  setUrl(`r2folder://${o.key}`);
+                                  setPickerOpen(false);
+                                  if (!title.trim()) setTitle(o.name);
+                                  return;
+                                }
+                                setStoragePrefix(o.key);
+                                setStorageLoading(true);
+                                try {
+                                  const res = await fetch(`/api/r2/list?prefix=${encodeURIComponent(o.key)}`);
+                                  const data = await res.json();
+                                  setStorageObjects(data.objects || []);
+                                } finally {
+                                  setStorageLoading(false);
+                                }
+                                return;
+                              }
+
+                              if (targetKind === "storageFile") {
+                                setUrl(`r2://${o.key}`);
+                                setPickerOpen(false);
+                                if (!title.trim()) setTitle(o.name);
+                              }
+                            }}
+                          >
+                            <span style={{ fontSize: 16 }}>
+                              {o.isFolder ? "📁" : "📄"}
+                            </span>
+                            <div style={{ flex: 1, overflow: "hidden" }}>
+                              <div style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {o.isFolder ? `${o.name}/` : o.name}
+                              </div>
+                              <div style={{ fontSize: 11, color: "#888" }}>
+                                {o.key}
+                              </div>
+                            </div>
+                            <span style={{ fontSize: 11, color: "#999" }}>
+                              {!o.isFolder ? `${Math.round((o.size || 0) / 1024)} KB` : ""}
+                            </span>
+                          </div>
+                        ))}
+                        {storageObjects.length === 0 && (
+                          <div style={{ padding: 14, fontSize: 13, color: "#666" }}>
+                            Empty folder.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div>

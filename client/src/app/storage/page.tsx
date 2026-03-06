@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import FileExplorer from "@/components/FileExplorer";
 import VisitorModal from "@/components/VisitorModal";
@@ -9,6 +10,8 @@ import { Database, HardDrive, Cloud, Zap } from "lucide-react";
 export default function StoragePage() {
   const [visitorName, setVisitorName] = useState<string | null>(null);
   const [showVisitorModal, setShowVisitorModal] = useState(false);
+  const searchParams = useSearchParams();
+  const initialPrefix = searchParams.get("prefix") || "";
 
   useEffect(() => {
     const cached = localStorage.getItem("d72_visitor_name");
@@ -159,7 +162,7 @@ export default function StoragePage() {
           </div>
         </div>
 
-        <FileExplorer visitorName={visitorName || ""} />
+        <FileExplorer visitorName={visitorName || ""} initialPrefix={initialPrefix} />
       </div>
     </div>
   );

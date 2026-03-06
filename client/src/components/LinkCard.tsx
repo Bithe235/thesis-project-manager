@@ -29,6 +29,41 @@ const CATEGORY_EMOJIS: Record<string, string> = {
 export default function LinkCard({ link, onDelete, onEdit, isAdmin = false }: LinkCardProps) {
   const [copied, setCopied] = useState(false);
   const [copyAll, setCopyAll] = useState(false);
+  const [visiting, setVisiting] = useState(false);
+
+  const parseStorageTarget = (u: string) => {
+    const url = (u || "").trim();
+    if (url.startsWith("r2://")) {
+      return { kind: "file" as const, key: url.slice("r2://".length) };
+    }
+    if (url.startsWith("r2folder://")) {
+      const prefix = url.slice("r2folder://".length);
+      return { kind: "folder" as const, prefix };
+    }
+    return null;
+  };
+
+  const storageTarget = parseStorageTarget(link.url);
+
+  const getExt = (keyOrUrl: string) => {
+    const last = keyOrUrl.split("/").pop() || keyOrUrl;
+    const parts = last.split(".");
+    return parts.length > 1 ? parts.pop()!.toLowerCase() : "";
+  };
+
+  const openStorageFile = async (key: string) => {
+    setVisiting(true);
+    try {
+      const ext = getExt(key);
+      const mode = ext === "pdf" ? "view" : "download";
+      const res = await fetch(`/api/r2/download-url?key=${encodeURIComponent(key)}&mode=${mode}`);
+      const data = await res.json();
+      if (!res.ok || data.error || !data.url) throw new Error(data.error || "Failed to open file");
+      window.open(data.url, "_blank", "noopener,noreferrer");
+    } finally {
+      setVisiting(false);
+    }
+  };
 
   const handleCopyUrl = async () => {
     await navigator.clipboard.writeText(link.url);
@@ -194,16 +229,38 @@ export default function LinkCard({ link, onDelete, onEdit, isAdmin = false }: Li
         {/* Action buttons */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {/* Visit */}
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="neo-btn neo-btn-black"
-            style={{ flex: 1, justifyContent: "center", fontSize: 13 }}
-          >
-            <ExternalLink size={14} />
-            Visit
-          </a>
+          {storageTarget?.kind === "file" ? (
+            <button
+              type="button"
+              onClick={() => openStorageFile(storageTarget.key)}
+              className="neo-btn neo-btn-black"
+              style={{ flex: 1, justifyContent: "center", fontSize: 13 }}
+              disabled={visiting}
+            >
+              <ExternalLink size={14} />
+              {visiting ? "Opening..." : "Open File"}
+            </button>
+          ) : storageTarget?.kind === "folder" ? (
+            <a
+              href={`/storage?prefix=${encodeURIComponent(storageTarget.prefix || "")}`}
+              className="neo-btn neo-btn-black"
+              style={{ flex: 1, justifyContent: "center", fontSize: 13 }}
+            >
+              <ExternalLink size={14} />
+              Open Folder
+            </a>
+          ) : (
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="neo-btn neo-btn-black"
+              style={{ flex: 1, justifyContent: "center", fontSize: 13 }}
+            >
+              <ExternalLink size={14} />
+              Visit
+            </a>
+          )}
 
           {/* Copy URL */}
           <button

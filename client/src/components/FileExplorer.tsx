@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { formatFileSize, getFileIcon } from "@/lib/r2-client";
 import UploadMetadataModal, { UploadMetadata } from "./UploadMetadataModal";
+import EditFileMetadataModal, { EditFileMetaValues } from "./EditFileMetadataModal";
 
 interface R2Object {
   key: string;
@@ -27,11 +28,12 @@ interface FileMeta {
 
 interface FileExplorerProps {
   visitorName?: string;
+  initialPrefix?: string;
 }
 
-export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
+export default function FileExplorer({ visitorName = "", initialPrefix = "" }: FileExplorerProps) {
   const [objects, setObjects] = useState<R2Object[]>([]);
-  const [prefix, setPrefix] = useState("");
+  const [prefix, setPrefix] = useState(initialPrefix || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -58,6 +60,8 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
   const [hoveredMeta, setHoveredMeta] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
+  const [editingMetaKey, setEditingMetaKey] = useState<string | null>(null);
+  const [editingMeta, setEditingMeta] = useState<FileMeta | null>(null);
 
   useEffect(() => {
     const updateAdmin = () => {
@@ -70,6 +74,11 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
       window.removeEventListener("d72_admin_change", updateAdmin as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    setPrefix(initialPrefix || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrefix]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -104,7 +113,16 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
     if (res?.ok) {
       const data = await res.json();
       const map: Record<string, FileMeta> = {};
-      for (const m of (data.results || [])) map[m.key] = m;
+      for (const m of (data.results || [])) {
+        map[m.key] = {
+          key: m.key,
+          type: m.type,
+          description: m.description || "",
+          tags: m.tags || [],
+          uploadedBy: m.uploadedBy || m.uploaded_by || "",
+          uploadedAt: m.uploadedAt || m.uploaded_at || "",
+        };
+      }
       setMetaMap(map);
     }
   };
@@ -119,12 +137,51 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
       const res = await fetch(`/api/r2/metadata?search=${encodeURIComponent(search)}`).catch(() => null);
       if (res?.ok) {
         const data = await res.json();
-        setSearchResults(data.results || []);
+        setSearchResults(
+          (data.results || []).map((m: any) => ({
+            key: m.key,
+            type: m.type,
+            description: m.description || "",
+            tags: m.tags || [],
+            uploadedBy: m.uploadedBy || m.uploaded_by || "",
+            uploadedAt: m.uploadedAt || m.uploaded_at || "",
+          })),
+        );
       }
       setIsSearching(false);
     }, 400);
     return () => clearTimeout(t);
   }, [search]);
+
+  const openEditMeta = (key: string) => {
+    const meta = metaMap[key];
+    if (!meta) return;
+    setEditingMetaKey(key);
+    setEditingMeta(meta);
+  };
+
+  const saveEditMeta = async (next: EditFileMetaValues) => {
+    try {
+      await fetch("/api/r2/metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entries: [{
+            key: next.key,
+            type: next.type,
+            description: next.description,
+            tags: next.tags,
+            uploadedBy: next.uploadedBy,
+          }],
+        }),
+      });
+      setEditingMetaKey(null);
+      setEditingMeta(null);
+      await fetchMeta(prefix);
+    } catch (err: any) {
+      setError(err.message || "Failed to update metadata");
+    }
+  };
 
   const pathSegments = prefix ? prefix.replace(/\/$/, "").split("/") : [];
 
@@ -562,9 +619,14 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>{obj.name}</span>
                         {meta && (
                           <span
-                            onMouseEnter={() => setHoveredMeta(obj.key)}
-                            onMouseLeave={() => setHoveredMeta(null)}
-                            style={{ cursor: "help", flexShrink: 0, color: "#4ECDC4" }}
+                            onMouseEnter={() => !isNarrow && setHoveredMeta(obj.key)}
+                            onMouseLeave={() => !isNarrow && setHoveredMeta(null)}
+                            onClick={() => {
+                              if (isAdmin) openEditMeta(obj.key);
+                              else setHoveredMeta((prev) => (prev === obj.key ? null : obj.key));
+                            }}
+                            style={{ cursor: isAdmin ? "pointer" : "help", flexShrink: 0, color: "#4ECDC4" }}
+                            title={isAdmin ? "Edit metadata" : "View metadata"}
                           >
                             <Info size={13} />
                           </span>
@@ -660,7 +722,11 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
                       <span
                         onMouseEnter={() => setHoveredMeta(obj.key)}
                         onMouseLeave={() => setHoveredMeta(null)}
-                        style={{ cursor: "help", flexShrink: 0, color: "#4ECDC4" }}
+                        onClick={() => {
+                          if (isAdmin) openEditMeta(obj.key);
+                        }}
+                        style={{ cursor: isAdmin ? "pointer" : "help", flexShrink: 0, color: "#4ECDC4" }}
+                        title={isAdmin ? "Edit metadata" : "View metadata"}
                       >
                         <Info size={13} />
                       </span>
@@ -778,6 +844,20 @@ export default function FileExplorer({ visitorName = "" }: FileExplorerProps) {
           visitorName={visitorName}
           onConfirm={handleUploadConfirm}
           onCancel={() => { setShowMetaModal(false); setPendingFiles([]); }}
+        />
+      )}
+
+      {editingMetaKey && editingMeta && (
+        <EditFileMetadataModal
+          initial={{
+            key: editingMetaKey,
+            type: editingMeta.type,
+            description: editingMeta.description,
+            tags: editingMeta.tags,
+            uploadedBy: editingMeta.uploadedBy,
+          }}
+          onCancel={() => { setEditingMetaKey(null); setEditingMeta(null); }}
+          onSave={saveEditMeta}
         />
       )}
 
