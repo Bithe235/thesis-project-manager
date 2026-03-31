@@ -7,6 +7,24 @@ const sql = neon(process.env.DATABASE_URL!);
 let initialized = false;
 export async function initSchema() {
   if (initialized) return;
+  // 1. Profiles table
+  await sql`
+    CREATE TABLE IF NOT EXISTS profiles (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Provide initial default profile via seed
+  await sql`
+    INSERT INTO profiles (id, name, description)
+    VALUES ('default', 'Default Workspace', 'The public, globally viewable set of resources.')
+    ON CONFLICT (id) DO NOTHING
+  `;
+
+  // 2. Links table (Original)
   await sql`
     CREATE TABLE IF NOT EXISTS links (
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -20,6 +38,10 @@ export async function initSchema() {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  // Inject profile_id seamlessly for legacy links
+  await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS profile_id TEXT NOT NULL DEFAULT 'default'`;
+
+  // 3. Visitors table (Original)
   await sql`
     CREATE TABLE IF NOT EXISTS visitors (
       session_id  TEXT PRIMARY KEY,
@@ -28,6 +50,8 @@ export async function initSchema() {
       page        TEXT NOT NULL DEFAULT '/'
     )
   `;
+
+  // 4. File metadata table (Original)
   await sql`
     CREATE TABLE IF NOT EXISTS file_metadata (
       key          TEXT PRIMARY KEY,
@@ -38,6 +62,9 @@ export async function initSchema() {
       uploaded_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  // Inject profile_id seamlessly for legacy files
+  await sql`ALTER TABLE file_metadata ADD COLUMN IF NOT EXISTS profile_id TEXT NOT NULL DEFAULT 'default'`;
+
   initialized = true;
 }
 

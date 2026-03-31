@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BookOpen, Database, Menu, X, Sparkles } from "lucide-react";
+import { BookOpen, Database, Menu, X, Sparkles, Plus } from "lucide-react";
+import { useProfile } from "./ProfileContext";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -10,6 +11,34 @@ export default function Navbar() {
   const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
+  
+  const { activeProfileId, setActiveProfileId, profiles, refreshProfiles } = useProfile();
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [newProfileId, setNewProfileId] = useState("");
+  const [newProfileName, setNewProfileName] = useState("");
+
+  const handleCreateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/profiles", {
+        method: "POST",
+        body: JSON.stringify({ id: newProfileId, name: newProfileName })
+      });
+      if (res.ok) {
+        await refreshProfiles();
+        setActiveProfileId(newProfileId.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
+        setShowProfileModal(false);
+        setNewProfileId("");
+        setNewProfileName("");
+        window.location.reload(); // Force full app refresh to hydrate new active profile scopes
+      } else {
+        const err = await res.json();
+        alert(err.error);
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -109,6 +138,48 @@ export default function Navbar() {
                 <Sparkles size={13} />
                 Batch D-72 • CSE
               </div>
+              
+              {isAdmin && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 8 }}>
+                  <select
+                    value={activeProfileId}
+                    onChange={(e) => {
+                        setActiveProfileId(e.target.value);
+                        window.location.reload(); // Hard reset state
+                    }}
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      border: "2px solid #1a1a1a",
+                      background: "#fff",
+                      boxShadow: "2px 2px 0 #1a1a1a",
+                      fontFamily: "'Space Mono', monospace",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer"
+                    }}
+                  >
+                    {profiles.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={() => setShowProfileModal(true)}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 28, height: 28,
+                      borderRadius: 6, border: "2px solid #1a1a1a",
+                      boxShadow: "2px 2px 0 #1a1a1a",
+                      background: "#4ECDC4", color: "#1a1a1a",
+                      cursor: "pointer"
+                    }}
+                    title="Create New Profile"
+                  >
+                    <Plus size={16} strokeWidth={3} />
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={() => setShowAdminModal(true)}
                 style={{
@@ -270,6 +341,81 @@ export default function Navbar() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* --- Create Profile Modal --- */}
+      {showProfileModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(26,26,26,0.75)",
+            backdropFilter: "blur(6px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setShowProfileModal(false)}
+        >
+          <div
+            className="animate-bounce-in"
+            style={{
+              background: "#FFFFFF",
+              border: "3px solid #1a1a1a",
+              borderRadius: 16,
+              boxShadow: "8px 8px 0 #1a1a1a",
+              width: "100%",
+              maxWidth: 400,
+              padding: 24,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{
+              fontFamily: "'Space Mono', monospace",
+              fontSize: 18,
+              fontWeight: 700,
+              marginBottom: 12,
+            }}>
+              Create Workspace Profile
+            </h2>
+            <form onSubmit={handleCreateProfile} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+                    Profile ID (URL Safe)
+                  </label>
+                  <input
+                    className="neo-input"
+                    value={newProfileId}
+                    onChange={(e) => setNewProfileId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="e.g., ai-research"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+                    Print Name
+                  </label>
+                  <input
+                    className="neo-input"
+                    value={newProfileName}
+                    onChange={(e) => setNewProfileName(e.target.value)}
+                    placeholder="e.g., AI Research Group"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="neo-btn neo-btn-black"
+                  style={{ width: "100%", justifyContent: "center", marginTop: 4 }}
+                >
+                  Create
+                </button>
+            </form>
           </div>
         </div>
       )}

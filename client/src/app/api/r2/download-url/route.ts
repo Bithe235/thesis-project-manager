@@ -6,6 +6,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const key = searchParams.get("key");
     const mode = searchParams.get("mode") || "download"; // 'view' | 'download'
+    const profileId = searchParams.get("profileId") || "default";
+
     if (!key) {
       return NextResponse.json({ error: "key is required" }, { status: 400 });
     }
@@ -16,8 +18,9 @@ export async function GET(req: NextRequest) {
     } else if (mode === "download") {
       disposition = `attachment; filename="${filename}"`;
     }
-    const url = await getPresignedDownloadUrl(key, disposition);
-    return NextResponse.json({ url, key });
+    const actualKey = profileId !== "default" ? `${profileId}/${key}` : key;
+    const url = await getPresignedDownloadUrl(actualKey, disposition);
+    return NextResponse.json({ url, key: actualKey });
   } catch (err: any) {
     console.error("R2 download URL error:", err);
     return NextResponse.json(

@@ -1,17 +1,22 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useProfile } from "@/components/ProfileContext";
 import Navbar from "@/components/Navbar";
 import FileExplorer from "@/components/FileExplorer";
 import VisitorModal from "@/components/VisitorModal";
 import OnlineUsers from "@/components/OnlineUsers";
 import { Database, HardDrive, Cloud, Zap } from "lucide-react";
 
-export default function StoragePage() {
+function StoragePageContent() {
   const [visitorName, setVisitorName] = useState<string | null>(null);
   const [showVisitorModal, setShowVisitorModal] = useState(false);
   const searchParams = useSearchParams();
   const initialPrefix = searchParams.get("prefix") || "";
+  const { activeProfileId, profiles } = useProfile();
+
+  const activeProfile = profiles.find(p => p.id === activeProfileId);
+  const isDefaultProfile = activeProfileId === "default";
 
   useEffect(() => {
     const cached = localStorage.getItem("d72_visitor_name");
@@ -80,8 +85,8 @@ export default function StoragePage() {
               </h1>
               <p style={{ color: "#aaa", fontSize: 15, maxWidth: 520, lineHeight: 1.6 }}>
                 Secure storage for{" "}
-                <strong>Dhaka International University — CSE, Batch D-72</strong>{" "}
-                thesis chapters, datasets, and important documents. Organize folders, add rich metadata, and keep the whole batch in one place.
+                <strong>{isDefaultProfile ? "Dhaka International University — CSE, Batch D-72" : activeProfile?.name}</strong>{" "}
+                {isDefaultProfile ? "thesis chapters, datasets, and important documents. Organize folders, add rich metadata, and keep the whole batch in one place." : activeProfile?.description}
                 {visitorName && (
                   <span style={{ color: "#4ECDC4", fontWeight: 600 }}> Welcome, {visitorName}!</span>
                 )}
@@ -165,5 +170,13 @@ export default function StoragePage() {
         <FileExplorer visitorName={visitorName || ""} initialPrefix={initialPrefix} />
       </div>
     </div>
+  );
+}
+
+export default function StoragePage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#1a1a1a", color: "#fff", fontFamily: "'Space Mono', monospace" }}>Loading Storage...</div>}>
+      <StoragePageContent />
+    </Suspense>
   );
 }

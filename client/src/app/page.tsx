@@ -5,6 +5,7 @@ import LinkCard from "@/components/LinkCard";
 import AddLinkModal from "@/components/AddLinkModal";
 import VisitorModal from "@/components/VisitorModal";
 import OnlineUsers from "@/components/OnlineUsers";
+import { useProfile } from "@/components/ProfileContext";
 import { Plus, Search, Grid, List, Zap } from "lucide-react";
 
 interface Link {
@@ -43,13 +44,15 @@ export default function HomePage() {
   const [showVisitorModal, setShowVisitorModal] = useState(false);
   const [editingLink, setEditingLink] = useState<Link | null>(null);
 
+  const { activeProfileId, profiles } = useProfile();
+
   useEffect(() => {
     fetchLinks();
     // Check for cached visitor name
     const cached = localStorage.getItem("d72_visitor_name");
     if (cached) setVisitorName(cached);
     else setShowVisitorModal(true);
-  }, []);
+  }, [activeProfileId]);
 
   // Sync admin flag from navbar/localStorage
   useEffect(() => {
@@ -72,7 +75,7 @@ export default function HomePage() {
   const fetchLinks = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/links");
+      const res = await fetch(`/api/links?profileId=${activeProfileId}`);
       const data = await res.json();
       setLinks(data.links || []);
     } catch {
@@ -86,7 +89,7 @@ export default function HomePage() {
     const res = await fetch("/api/links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newLink),
+      body: JSON.stringify({ ...newLink, profileId: activeProfileId }),
     });
     if (!res.ok) throw new Error("Failed");
     const data = await res.json();
@@ -96,7 +99,7 @@ export default function HomePage() {
 
   const handleDeleteLink = async (id: string) => {
     if (!confirm("Delete this link?")) return;
-    await fetch(`/api/links?id=${id}`, { method: "DELETE" });
+    await fetch(`/api/links?id=${id}&profileId=${activeProfileId}`, { method: "DELETE" });
     setLinks((prev) => prev.filter((l) => l.id !== id));
     showToast("🗑️ Link deleted");
   };
@@ -105,7 +108,7 @@ export default function HomePage() {
     const res = await fetch("/api/links", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...updated }),
+      body: JSON.stringify({ id, ...updated, profileId: activeProfileId }),
     });
     if (!res.ok) throw new Error("Failed");
     const data = await res.json();
@@ -170,10 +173,10 @@ export default function HomePage() {
                   color: "#1a1a1a",
                   fontFamily: "'Space Mono', monospace",
                 }}>
-                  🎓 D-72 THESIS GROUP
+                  🎓 {profiles.find(p => p.id === activeProfileId)?.name?.toUpperCase() || "D-72 THESIS GROUP"}
                 </div>
                 <div style={{ color: "#FFE135", fontSize: 12, fontWeight: 600, fontFamily: "'Space Mono', monospace" }}>
-                  Batch-7 • CSE
+                  {activeProfileId === 'default' ? 'Batch-7 • CSE' : 'Workspace'}
                 </div>
               </div>
               <h1 style={{
@@ -188,9 +191,15 @@ export default function HomePage() {
                 🔗 Research <span style={{ color: "#FFE135" }}>Link Hub</span>
               </h1>
               <p style={{ color: "#aaa", fontSize: 16, maxWidth: 520, lineHeight: 1.6 }}>
-                Central hub for thesis resources, research links, and tools for{" "}
-                <strong>Dhaka International University</strong> —{" "}
-                <strong>Dept. of CSE, Batch D-72</strong>. Add, search, and share materials so every student stays in sync.
+                {activeProfileId === "default" ? (
+                    <>
+                        Central hub for thesis resources, research links, and tools for{" "}
+                        <strong>Dhaka International University</strong> —{" "}
+                        <strong>Dept. of CSE, Batch D-72</strong>. Add, search, and share materials so every student stays in sync.
+                    </>
+                ) : (
+                    profiles.find(p => p.id === activeProfileId)?.description || "Isolated research workspace."
+                )}
               </p>
             </div>
 

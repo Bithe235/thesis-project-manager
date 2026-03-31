@@ -14,18 +14,19 @@ export async function GET(req: NextRequest) {
         const key = searchParams.get("key");
         const prefix = searchParams.get("prefix") || "";
         const search = searchParams.get("search") || "";
+        const profileId = searchParams.get("profileId") || "default";
 
         if (key) {
-            const [meta] = await sql`SELECT * FROM file_metadata WHERE key = ${key}`;
+            const [meta] = await sql`SELECT * FROM file_metadata WHERE key = ${key} AND profile_id = ${profileId}`;
             return NextResponse.json({ meta: meta || null });
         }
 
         if (search) {
-            // Full-text search across type, description, tags (array→text), key, uploaded_by
+            // Full-text search across type, description, tags, key, uploaded_by
             const q = `%${search.toLowerCase()}%`;
             const results = await sql`
         SELECT * FROM file_metadata
-        WHERE
+        WHERE profile_id = ${profileId} AND (
           LOWER(key) LIKE ${q} OR
           LOWER(type) LIKE ${q} OR
           LOWER(description) LIKE ${q} OR
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
           EXISTS (
             SELECT 1 FROM unnest(tags) t WHERE LOWER(t) LIKE ${q}
           )
+        )
         ORDER BY uploaded_at DESC
       `;
             return NextResponse.json({ results, total: results.length });
@@ -40,8 +42,8 @@ export async function GET(req: NextRequest) {
 
         // List by prefix
         const results = prefix
-            ? await sql`SELECT * FROM file_metadata WHERE key LIKE ${prefix + "%"} ORDER BY uploaded_at DESC`
-            : await sql`SELECT * FROM file_metadata ORDER BY uploaded_at DESC`;
+            ? await sql`SELECT * FROM file_metadata WHERE profile_id = ${profileId} AND key LIKE ${prefix + "%"} ORDER BY uploaded_at DESC`
+            : await sql`SELECT * FROM file_metadata WHERE profile_id = ${profileId} ORDER BY uploaded_at DESC`;
 
         return NextResponse.json({ results, total: results.length });
     } catch (err: any) {
@@ -54,27 +56,31 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         await initSchema();
-        const { entries } = await req.json();
+        const { entries, profileId } = await req.json();
+        const pid = profileId || "default";
+
         if (!entries || !Array.isArray(entries)) {
             return NextResponse.json({ error: "entries array required" }, { status: 400 });
         }
 
         for (const entry of entries) {
             await sql`
-        INSERT INTO file_metadata (key, type, description, tags, uploaded_by, uploaded_at)
+        INSERT INTO file_metadata (key, type, description, tags, uploaded_by, uploaded_at, profile_id)
         VALUES (
           ${entry.key},
           ${entry.type || "Other"},
           ${entry.description || ""},
           ${entry.tags || []},
           ${entry.uploadedBy || entry.uploaded_by || "Anonymous"},
-          NOW()
+          NOW(),
+          ${pid}
         )
         ON CONFLICT (key) DO UPDATE SET
           type        = EXCLUDED.type,
           description = EXCLUDED.description,
           tags        = EXCLUDED.tags,
           uploaded_by = EXCLUDED.uploaded_by,
+          profile_id  = EXCLUDED.profile_id,
           uploaded_at = NOW()
       `;
         }
@@ -90,9 +96,10 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         await initSchema();
-        const { key } = await req.json();
+        const { key, profileId } = await req.json();
+        const pid = profileId || "default";
         if (!key) return NextResponse.json({ error: "key required" }, { status: 400 });
-        await sql`DELETE FROM file_metadata WHERE key = ${key}`;
+        await sql`DELETE FROM file_metadata WHERE key = ${key} AND profile_id = ${pid}`;
         return NextResponse.json({ ok: true });
     } catch (err: any) {
         console.error("File metadata DELETE error:", err);

@@ -10,10 +10,12 @@ const LINK_CATEGORIES = [
     "Dataset", "Resource", "Communication", "Other",
 ];
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await initSchema();
-        const links = await sql`SELECT * FROM links ORDER BY created_at DESC`;
+        const { searchParams } = new URL(req.url);
+        const profileId = searchParams.get("profileId") || "default";
+        const links = await sql`SELECT * FROM links WHERE profile_id = ${profileId} ORDER BY created_at DESC`;
         return NextResponse.json({ links, colors: LINK_COLORS, categories: LINK_CATEGORIES });
     } catch (err: any) {
         console.error("Links GET error:", err);
@@ -24,12 +26,13 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await initSchema();
-        const { title, url, purpose, category, tags, color, author } = await req.json();
+        const { title, url, purpose, category, tags, color, author, profileId } = await req.json();
+        const pid = profileId || "default";
         if (!title || !url || !purpose) {
             return NextResponse.json({ error: "title, url, and purpose are required" }, { status: 400 });
         }
         const [link] = await sql`
-      INSERT INTO links (title, url, purpose, category, tags, color, author)
+      INSERT INTO links (title, url, purpose, category, tags, color, author, profile_id)
       VALUES (
         ${title},
         ${url},
@@ -37,7 +40,8 @@ export async function POST(req: NextRequest) {
         ${category || "Other"},
         ${tags || []},
         ${color || LINK_COLORS[0]},
-        ${author || "Anonymous"}
+        ${author || "Anonymous"},
+        ${pid}
       )
       RETURNING *
     `;
@@ -53,9 +57,10 @@ export async function DELETE(req: NextRequest) {
         await initSchema();
         const { searchParams } = new URL(req.url);
         const id = searchParams.get("id");
+        const profileId = searchParams.get("profileId") || "default";
         if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
-        const result = await sql`DELETE FROM links WHERE id = ${id} RETURNING id`;
-        if (result.length === 0) return NextResponse.json({ error: "Link not found" }, { status: 404 });
+        const result = await sql`DELETE FROM links WHERE id = ${id} AND profile_id = ${profileId} RETURNING id`;
+        if (result.length === 0) return NextResponse.json({ error: "Link not found or permission denied" }, { status: 404 });
         return NextResponse.json({ success: true });
     } catch (err: any) {
         console.error("Links DELETE error:", err);
@@ -66,7 +71,8 @@ export async function DELETE(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
     try {
         await initSchema();
-        const { id, title, url, purpose, category, tags, color, author } = await req.json();
+        const { id, title, url, purpose, category, tags, color, author, profileId } = await req.json();
+        const pid = profileId || "default";
         if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
         const [link] = await sql`
       UPDATE links SET
@@ -77,10 +83,10 @@ export async function PATCH(req: NextRequest) {
         tags      = COALESCE(${tags}, tags),
         color     = COALESCE(${color}, color),
         author    = COALESCE(${author}, author)
-      WHERE id = ${id}
+      WHERE id = ${id} AND profile_id = ${pid}
       RETURNING *
     `;
-        if (!link) return NextResponse.json({ error: "Link not found" }, { status: 404 });
+        if (!link) return NextResponse.json({ error: "Link not found or permission denied" }, { status: 404 });
         return NextResponse.json({ link });
     } catch (err: any) {
         console.error("Links PATCH error:", err);

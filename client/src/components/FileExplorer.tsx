@@ -6,6 +6,7 @@ import {
   Search, Info, ExternalLink, Download as DownloadIcon,
 } from "lucide-react";
 import { formatFileSize, getFileIcon } from "@/lib/r2-client";
+import { useProfile } from "@/components/ProfileContext";
 import UploadMetadataModal, { UploadMetadata } from "./UploadMetadataModal";
 import EditFileMetadataModal, { EditFileMetaValues } from "./EditFileMetadataModal";
 
@@ -38,6 +39,7 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [metaMap, setMetaMap] = useState<Record<string, FileMeta>>({});
+  const { activeProfileId } = useProfile();
 
   // Search
   const [search, setSearch] = useState("");
@@ -94,7 +96,7 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/r2/list?prefix=${encodeURIComponent(p)}`);
+      const res = await fetch(`/api/r2/list?prefix=${encodeURIComponent(p)}&profileId=${activeProfileId}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setObjects(data.objects || []);
@@ -109,7 +111,7 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
   };
 
   const fetchMeta = async (p = prefix) => {
-    const res = await fetch(`/api/r2/metadata?prefix=${encodeURIComponent(p)}`).catch(() => null);
+    const res = await fetch(`/api/r2/metadata?prefix=${encodeURIComponent(p)}&profileId=${activeProfileId}`).catch(() => null);
     if (res?.ok) {
       const data = await res.json();
       const map: Record<string, FileMeta> = {};
@@ -127,14 +129,14 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
     }
   };
 
-  useEffect(() => { fetchObjects(prefix); }, [prefix]);
+  useEffect(() => { fetchObjects(prefix); }, [prefix, activeProfileId]);
 
   // Debounced global search
   useEffect(() => {
     if (!search.trim()) { setSearchResults([]); setIsSearching(false); return; }
     setIsSearching(true);
     const t = setTimeout(async () => {
-      const res = await fetch(`/api/r2/metadata?search=${encodeURIComponent(search)}`).catch(() => null);
+      const res = await fetch(`/api/r2/metadata?search=${encodeURIComponent(search)}&profileId=${activeProfileId}`).catch(() => null);
       if (res?.ok) {
         const data = await res.json();
         setSearchResults(
@@ -166,6 +168,7 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          profileId: activeProfileId,
           entries: [{
             key: next.key,
             type: next.type,
@@ -211,7 +214,7 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
         const res = await fetch("/api/r2/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key, contentType: file.type || "application/octet-stream" }),
+          body: JSON.stringify({ key, contentType: file.type || "application/octet-stream", profileId: activeProfileId }),
         });
         const { uploadUrl } = await res.json();
         const xhr = new XMLHttpRequest();
@@ -246,7 +249,7 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
     await fetch("/api/r2/metadata", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ entries: metaEntries }),
+      body: JSON.stringify({ entries: metaEntries, profileId: activeProfileId }),
     }).catch(() => {});
 
     setUploading(false);
@@ -262,13 +265,13 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
     await fetch("/api/r2/delete", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key }),
+      body: JSON.stringify({ key, profileId: activeProfileId }),
     });
     // Remove metadata too
     await fetch("/api/r2/metadata", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key }),
+      body: JSON.stringify({ key, profileId: activeProfileId }),
     }).catch(() => {});
     setDeleteConfirm(null);
     fetchObjects(prefix);
@@ -284,13 +287,13 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
     await fetch("/api/r2/delete", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keys }),
+      body: JSON.stringify({ keys, profileId: activeProfileId }),
     });
     for (const key of keys) {
       await fetch("/api/r2/metadata", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({ key, profileId: activeProfileId }),
       }).catch(() => {});
     }
     setSelected(new Set()); setDeletingBulk(false); fetchObjects(prefix);
@@ -303,7 +306,7 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
     await fetch("/api/r2/mkdir", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: folderPath }),
+      body: JSON.stringify({ path: folderPath, profileId: activeProfileId }),
     });
     setMkdirName(""); setShowMkdir(false); setMkdirLoading(false);
     fetchObjects(prefix);
@@ -331,7 +334,7 @@ export default function FileExplorer({ visitorName = "", initialPrefix = "" }: F
   };
 
   const openPresignedUrl = async (key: string, mode: "view" | "download"): Promise<string> => {
-    const res = await fetch(`/api/r2/download-url?key=${encodeURIComponent(key)}&mode=${mode}`);
+    const res = await fetch(`/api/r2/download-url?key=${encodeURIComponent(key)}&mode=${mode}&profileId=${activeProfileId}`);
     const data = await res.json();
     if (!res.ok || data.error || !data.url) {
       throw new Error(data.error || "Failed to generate file URL");
