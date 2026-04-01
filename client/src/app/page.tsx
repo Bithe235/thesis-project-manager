@@ -178,6 +178,18 @@ export default function HomePage() {
                 <div style={{ color: "#FFE135", fontSize: 12, fontWeight: 600, fontFamily: "'Space Mono', monospace" }}>
                   {activeProfileId === 'default' ? 'Batch-7 • CSE' : 'Workspace'}
                 </div>
+                <div style={{
+                  background: "rgba(255,255,255,0.1)",
+                  color: "#aaa",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  fontFamily: "'Space Mono', monospace",
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  border: "1.5px solid rgba(255,255,255,0.2)"
+                }}>
+                  v2.0
+                </div>
               </div>
               <h1 style={{
                 fontFamily: "'Space Mono', monospace",

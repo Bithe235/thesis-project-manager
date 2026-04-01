@@ -71,6 +71,18 @@ function StoragePageContent() {
                 <div style={{ color: "#4ECDC4", fontSize: 12, fontWeight: 600, fontFamily: "'Space Mono', monospace" }}>
                   thesis bucket
                 </div>
+                <div style={{
+                  background: "rgba(255,255,255,0.1)",
+                  color: "#aaa",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  fontFamily: "'Space Mono', monospace",
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  border: "1.5px solid rgba(255,255,255,0.2)"
+                }}>
+                  v2.0
+                </div>
               </div>
               <h1 style={{
                 fontFamily: "'Space Mono', monospace",
