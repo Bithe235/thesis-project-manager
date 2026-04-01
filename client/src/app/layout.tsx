@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { ProfileProvider } from "@/components/ProfileContext";
+import GlobalAuth from "@/components/GlobalAuth";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -32,7 +33,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ProfileProvider>
-          {children}
+          <GlobalAuth>
+            {children}
+          </GlobalAuth>
         </ProfileProvider>
       </body>
     </html>
